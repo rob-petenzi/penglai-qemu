@@ -23,12 +23,14 @@
 #include "qemu/module.h"
 #include "target/riscv/cpu.h"
 #include "hw/riscv/sifive_test.h"
+#include "sysemu/sysemu.h"
 
 static uint64_t sifive_test_read(void *opaque, hwaddr addr, unsigned int size)
 {
     return 0;
 }
 
+/** Handle the test1 finisher shutdown and reset requests issued by OpenSBI. */
 static void sifive_test_write(void *opaque, hwaddr addr,
            uint64_t val64, unsigned int size)
 {
@@ -40,6 +42,9 @@ static void sifive_test_write(void *opaque, hwaddr addr,
             exit(code);
         case FINISHER_PASS:
             exit(0);
+        case FINISHER_RESET:
+            qemu_system_reset_request(SHUTDOWN_CAUSE_GUEST_RESET);
+            return;
         default:
             break;
         }
@@ -53,7 +58,7 @@ static const MemoryRegionOps sifive_test_ops = {
     .write = sifive_test_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .valid = {
-        .min_access_size = 4,
+        .min_access_size = 2,
         .max_access_size = 4
     }
 };
